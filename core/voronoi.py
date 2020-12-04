@@ -29,12 +29,13 @@ def det(x,y):
 	return x[0]*y[1] - x[1]*y[0]
 
 
-def Voronoi(points):
+def Voronoi1(points):
 	result = Delaunay(points)
 	print('------- Voronoi --------')
 	print('Triangles:',result[0])
 	voronoi_edges = []
 	shared_edges= []
+
 	for triangle in result[0]:
 		center = triangle.circumcenter
 		a = (det(center,triangle.c)-det(triangle.a,triangle.c))/det(triangle.b,triangle.c)
@@ -62,7 +63,7 @@ def Voronoi(points):
 						isShared = True
 
 	print('shared_edges:',shared_edges)
-	for triangle in result[0]: # na brw to convex hull edges - shared edges kateu8hnsh tou x mesw tou x4><center[0]
+	for triangle in result[0]: # einai psilo etoimo alla uparxoun periptwseis pou den leitourgei swsta isws ftaei o tupos trigwnou otan ola den einai obtuse tote leitourgei
 		center = triangle.circumcenter
 		for edge in triangle.edges:
 			if edge in shared_edges:
@@ -74,41 +75,27 @@ def Voronoi(points):
 			#y = k*(10-center[0]) + center[1]
 			x4 = center[0] - k*(edge[1][1]-edge[0][1])
 			y4 = center[1] + k*(edge[1][0]-edge[0][0])
-			if [center,(x4, y4)] not in voronoi_edges:
-				voronoi_edges.append([center,(x4, y4)])
-	print('V:',voronoi_edges)
-	#z = removeDuplicates(voronoi_edges)
-	#print('z:',z)
+			if x4 > center[0]:
+				xfinal = result[3][0]+10
+				m = ((center[0]+x4)/2, (center[1]+y4)/2)
+				s = (center[1]-y4)/(center[0]-x4)
+				yfinal = s*(xfinal-m[0]) + m[1]
 
-	#if len(voronoi_edges) == 0:
-	#	triangle = result[0][0]
-	'''
-	for triangle in result[0]:
-		center = triangle.circumcenter
-		for edge in triangle.edges:
-			if edge in shared_edges:
-				continue
-			print(edge)
-			k = ((edge[1][1]-edge[0][1])*(center[0]-edge[0][0])-(edge[1][0]-edge[0][0])*(center[1]-edge[0][1]))/((edge[1][1]-edge[0][1])**2 + (edge[1][0]-edge[0][0])**2)
-			x4 = center[0] - k*(edge[1][1]-edge[0][1])
-			y4 = center[1] + k*(edge[1][0]-edge[0][0])
-			print(center[0],' ',center[1],'->',x4,' ',y4,'k',k)
-			#print(center[0],' ',center[1],'->',5*x4,' ',5*y4)
-			try:
-				s1 = (edge[1][1]-edge[0][1])/(edge[1][0]-edge[0][0])
-				s2 = (y4-center[1])/(x4-center[0])
-			except ZeroDivisionError:
-				continue
-			#b = y4 - s2*x4
-			#print('slopes mul:',s1*s2)
-			voronoi_edges.append([center,(x4, y4)])
-			#voronoi_edges.append(limit)
-	for e in voronoi_edges:
-		print(e)
-	'''
+			elif x4< center[0]:
+				xfinal = result[2][0]-10
+				m = ((center[0]+x4)/2, (center[1]+y4)/2)
+				s = (center[1]-y4)/(center[0]-x4)
+				yfinal = s*(xfinal-m[0]) + m[1]
+			if [center,(xfinal, yfinal)] not in voronoi_edges:
+				voronoi_edges.append([center,(xfinal, yfinal)])
+	print('V:',voronoi_edges)
 
 	fig, ax = plt.subplots()
-	plt.axis([-1,60+1,-1,60+1])
+	xmin = result[2][0]-10
+	xmax = result[3][0]+10
+	ymin = result[2][1]-10
+	ymax = result[3][1]+10
+	plt.axis([xmin,xmax,ymin,ymax])
 	x_vals = []
 	y_vals = []
 	for p1 in points:
@@ -119,45 +106,12 @@ def Voronoi(points):
 			x_vals.append(l[0])
 			y_vals.append(l[1])
 	print('-----------------')
-	#x2,y2 = zip(*sorted(zip(x_vals,y_vals),key=lambda x: x[0]))
-	#print('x:',x2)
-	#print('y:',y2)
-	'''
-	tmp = []
-	p=0
-	for i in range(0,len(x_vals)):
-		#print(len(tmp))
-		#print(x,y)
-		if p==2:
-			print(tmp[0])
-			plt.plot(tmp[0][0],tmp[0][1],'ko')
-			plt.plot(tmp[1][0],tmp[1][1],'ko')
-			tmp = []
-			p=0
-			tmp.append((x_vals[i], y_vals[i]))
-		else:
-			tmp.append((x_vals[i], y_vals[i]))
-		p+=1
-	print(tmp)
-	plt.plot(tmp[0][0],tmp[0][1],'k')
-	plt.plot(tmp[1][0],tmp[1][1],'k')
-	'''
-	#plt.plot(x_vals,y_vals,'k')
+	
 	for i in range(0,len(x_vals)):
 		plt.plot(x_vals[2*i:2*(i+1)],y_vals[2*i:2*(i+1)],'k')
-	plt.plot((20,15),(22,40),'k')
-	#print(len(x_vals))
+	
 	'''
-	plt.plot(x_vals[0:2],y_vals[0:2])
-	plt.plot(x_vals[2:4],y_vals[2:4])
-	plt.plot(x_vals[4:6],y_vals[4:6])
-	plt.plot(x_vals[6:8],y_vals[6:8])
-	plt.plot(x_vals[8:10],y_vals[8:10])
-	plt.plot(x_vals[10:12],y_vals[10:12])
-	plt.plot(x_vals[12:14],y_vals[12:14])
-	plt.plot(x_vals[14:16],y_vals[14:16])
-	plt.plot(x_vals[16:18],y_vals[16:18])
-	'''
+	#triangles
 	tx_vals = []
 	ty_vals = []
 	for t in result[0]:
@@ -167,5 +121,6 @@ def Voronoi(points):
 				tx_vals.append(l[0])
 				ty_vals.append(l[1])
 	plt.plot(tx_vals,ty_vals)
+	'''
 	plt.show()
 

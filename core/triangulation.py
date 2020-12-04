@@ -114,7 +114,7 @@ def Delaunay(points):
 			final.append(triangle)
 	triangles = []
 	print('Ccenter:',final[0].circumcenter)
-	return (final, points)
+	return (final, points, minPoint, maxPoint)
 
 def show(fig,lst,points):
 	fig, ax = plt.subplots()
