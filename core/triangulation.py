@@ -55,7 +55,7 @@ class Triangle:
 		self.circumcenter = getCircumcenter(a,b,c)
 
 	def isPointInCircumcenter(self,point):
-		if (eDist(self.a,self.circumcenter) > eDist(point,self.circumcenter)):
+		if (eDist(self.a,self.circumcenter) >= eDist(point,self.circumcenter)):
 			return True
 		return False
 
@@ -89,6 +89,7 @@ def Delaunay(points):
 		bad_triangles = []
 		#print('T len:',len(triangles))
 		for triangle in triangles:
+			#print(triangle.circumcenter)
 			if triangle.isPointInCircumcenter(point):
 				bad_triangles.append(triangle)
 		#print('bad:',len(bad_triangles))
@@ -113,10 +114,10 @@ def Delaunay(points):
 		if triangle.HasVertex(sxmax)==False and triangle.HasVertex(sxmin)==False and triangle.HasVertex(symax)==False:
 			final.append(triangle)
 	triangles = []
-	print('Ccenter:',final[0].circumcenter)
-	return (final, points, minPoint, maxPoint)
+	
+	return final
 
-def show(fig,lst,points):
+def show(lst,points):
 	fig, ax = plt.subplots()
 	plt.axis([-1,60+1,-1,60+1])
 	x_vals = []
