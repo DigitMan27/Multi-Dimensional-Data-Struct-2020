@@ -141,7 +141,7 @@ class Voronoi2D:
 	def find_cells(self):
 		for triangle in self.triangles:
 			for edge in triangle.edges:
-				print(edge)
+				#print(edge)
 				isShared = False
 				for other in self.triangles:
 					if other == triangle:
@@ -163,46 +163,85 @@ class Voronoi2D:
 	def find_boundaries(self):
 		for triangle in self.triangles:
 			flag = False
-			tmp = None
 			center = Point(triangle.circumcenter[0],triangle.circumcenter[1])
-			for edge in triangle.edges:
-				print(edge)
-				if edge in self.sharedEdges:
-					continue
-				flag, tmp = isObtuse(triangle)
-				print(flag,tmp)
-				if flag:
-					p = self.intersect(edge,center,True,tmp)
+			flag = self.isObtuse(triangle)
+			if flag: # center IN
+				for edge in triangle.edges:
+					if edge in self.sharedEdges:
+						continue
+					p, ps = self.intersect(edge,center)
 					if p is not None:
-						self.voronoi_lines.append(Line(p,center))
-
-				else:
-					p = self.intersect(edge,center)
-					if p is not None:
-						self.voronoi_lines.append(Line(p,center))
+						if ps is not None:
+							self.voronoi_lines.append(Line(p,ps))
+							self.voronoi_lines.append(Line(ps,center))
+						else:
+							self.voronoi_lines.append(Line(p,center))
 					else:
 						print('None')
+			else:
+				for edge in triangle.edges:
+					if edge in self.sharedEdges:
+						continue
+					print(edge)
+					isHypot = self.isHypot(edge,triangle)
+					print("HYPOT",isHypot)
+					p, ps = self.intersect(edge,center,True,isHypot)
+					if p is not None:
+						if ps is not None:
+							self.voronoi_lines.append(Line(p,ps))
+							self.voronoi_lines.append(Line(ps,center))
+						else:
+							self.voronoi_lines.append(Line(p,center))
 				
 		print(self.voronoi_lines,len(self.voronoi_lines))
 
-	def point_side(self,edge,point):
-		x0 = edge[0][0]
-		y0 = edge[0][1]
-		x1 = edge[1][0]
-		y1 = edge[1][1]
-		D = ((x1-x0)*(point.y-y0) - (y1-y0)*(point.x - x0))
-		if D > 0:
-			return 'p'
-		elif D<0:
-			return 'n'
-		else:
-			return None
+	def isObtuse(self,triangle):
 
-	def dist(self,p0,p1):
+		center = triangle.circumcenter
+		triangleArea = self.isInside(triangle.a,triangle.b,triangle.c)
+		#print('Area:',triangleArea)
+		triangleArea1 = self.isInside(center,triangle.b,triangle.c)
+		#print('Area1:',triangleArea1)
+		triangleArea2 = self.isInside(triangle.a,center,triangle.c)
+		#print('Area2:',triangleArea2)
+		triangleArea3 = self.isInside(triangle.a,triangle.b,center)
+		#print('Area3:',triangleArea3)
+		if isclose(triangleArea,(triangleArea1+triangleArea2+triangleArea3)):
+			print("IN")
+			return True # inside
+		return False # not 
+
+	def isHypot(self,edge,triangle):
+		flags = [False]*2
+		i=0
+		for o_edge in triangle.edges:
+			if edge == o_edge:
+				continue
+			else:
+				if self.dist(Point(edge[0][0],edge[0][1]),Point(edge[1][0],edge[1][1]),mode='euclidian') > self.dist(Point(o_edge[0][0],o_edge[0][1]),Point(o_edge[1][0],o_edge[1][1]),mode='euclidian'):
+					print(self.dist(Point(edge[0][0],edge[0][1]),Point(edge[1][0],edge[1][1]),mode='euclidian'),'>',self.dist(Point(o_edge[0][0],o_edge[0][1]),Point(o_edge[1][0],o_edge[1][1]),mode='euclidian'))
+					flags[i] = True
+					i+=1
+				else:
+					return False
+		if flags[0] and flags[1]:
+			return True
+		return False
+
+		
+
+	def isInside(self,p1,p2,p3):
+		triangleArea = (p1[0]*(p2[1]-p3[1])+p2[0]*(p3[1]-p1[1])+p3[0]*(p1[1]-p2[1]))/2.0
+		return abs(triangleArea)
+
+	def dist(self,p0,p1,mode='abs'):
 		#return sqrt((p1.x-p0.x)**2 + (p1.y-p0.y)**2)
-		return abs((p1.x-p0.x)+(p1.y-p0.y))
+		if mode=='abs':
+			return abs((p1.x-p0.x)+(p1.y-p0.y))
+		elif mode == 'euclidian':
+			return sqrt((p1.x-p0.x)**2 + (p1.y-p0.y)**2)
 
-	def intersect(self,edge,center,isObtuse=False,hypot=None):
+	def intersect(self,edge,center,isObtuse=False,isHypot=False):
 		x0 = edge[0][0]
 		y0 = edge[0][1]
 		x1 = edge[1][0]
@@ -213,70 +252,76 @@ class Voronoi2D:
 			m = (x0+x1)/2, (y1+y0)/2
 			#if m[1] < 
 			if m[0] < center.x:
-				return Point(self.x0,center.y)
+				return Point(self.x0,center.y), None
 			else:
-				return Point(self.x0,center.y)
+				return Point(self.x0,center.y), None
 		elif(y1-y0)==0:
 			print('p y')
 			m = (x0+x1)/2, (y1+y0)/2
 			#if m[1] < 
 			if m[1] < center.y:
-				return Point(center.x,self.y0)
+				return Point(center.x,self.y0), None
 			else:
-				return Point(center.x,self.y1)
+				return Point(center.x,self.y1), None
 		else:
-			'''slope = (y1 - y0)/(x1 - x0)
-			p_slope = -1/slope
-			b = center.y - p_slope*center.x'''
 
-			if isObtuse==False:
-				print('No isObtuse')
+			if isObtuse==False: # na dw ligo thn ka8etothta twn grammwn
+				print('No Obtuse')
 				k = ((y1-y0)*(center.x-x0)-(x1-x0)*(center.y-y0))/((y1-y0)**2 + (x1-x0)**2)
 				x4 = center.x - k*(y1-y0)
 				y4 = center.y + k*(x1-x0)
-				print(x4,y4)
-				slope = (y4-center.y)/(x4-center.x)
-				b = y4 - slope*x4
-				x = pi + k
-				s1 = 1/slope
-				print(atan(x))
+				#print(x4,y4)
+				slope = (y4-center.y)/(x4-center.x) # elenxos gia otan to x4/y4 einai iso me to center
+				b = center.y - slope*center.x
+				s1 = slope
+				#print(atan(x))
 				if center.x > x4 and -1/slope < 0:
 					py = s1*self.x0 + b
-					return Point(self.x0,py)
+					return Point(self.x0,py), Point(x4,y4)
 				elif center.x > x4 and -1/slope > 0:
 					py = s1*self.x0 + b
-					return Point(self.x0,py)
+					return Point(self.x0,py), Point(x4,y4)
 				elif x4 > center.x and -1/slope < 0:
 					py = s1*self.x1 + b
-					return Point(self.x1,py)
+					return Point(self.x1,py), Point(x4,y4)
 				elif x4 > center.x and -1/slope > 0:
 					py = s1*self.x1 + b
-					return Point(self.x1,py)
+					return Point(self.x1,py), Point(x4,y4)
 			else:
 				k = ((y1-y0)*(center.x-x0)-(x1-x0)*(center.y-y0))/((y1-y0)**2 + (x1-x0)**2)
 				x4 = center.x - k*(y1-y0)
 				y4 = center.y + k*(x1-x0)
-				print(x4,y4)
+				#print(x4,y4)
 				slope = (y4-center.y)/(x4-center.x)
-				b = y4 - slope*x4
-				x = pi + k
-				s1 = 1/slope
-				print(slope)
+				b = center.y - slope*center.x
+				s1 = slope
+				#print(slope)
 				if center.x > x4 and -1/slope < 0:
-					py = s1*self.x1 + b
-					return Point(x4,y4)
+					if isHypot:
+						py = s1*self.x1 + b
+						return Point(self.x1,py), None
+					else:
+						py = s1*self.x0 + b
+						return Point(self.x0,py), None
 				elif center.x > x4 and -1/slope > 0:
+					if isHypot:
+						py = s1*self.x1 + b
+						return Point(self.x1,py), None
+					else:
+						py = s1*self.x0 + b
+						return Point(self.x0,py), None
+					#return Point(x4,y4)
+				elif x4 > center.x and -1/slope < 0: # na balw kai edw tin periptwsh me thn hypot
 					py = s1*self.x1 + b
-					#return Point(self.x1,py)
-					return Point(x4,y4)
-				elif x4 > center.x and -1/slope < 0:
-					py = s1*self.x0 + b
-					#return Point(self.x0,py)
-					return Point(x4,y4)
+					return Point(self.x1,py), Point(x4,y4)
+					#return Point(x4,y4)
 				elif x4 > center.x and -1/slope > 0:
-					py = s1*self.x0 + b
-					return Point(x4,y4)
-					#return Point(self.x0,py)
+					if isHypot:
+						py = s1*self.x0 + b
+						return Point(self.x0,py), None
+					else:
+						py = s1*self.x1 + b
+						return Point(self.x1,py), None
 
 	def collinear(self,e1):
 		if e1[0][0]==e1[0][1] or e1[0][1] == e1[1][0]:
