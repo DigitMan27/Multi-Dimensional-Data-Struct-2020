@@ -1,35 +1,14 @@
 from .triangulation import Delaunay, LineIsEqual
+from .structs import *
 import matplotlib.pyplot as plt
 from math import inf, sqrt, floor, cos, pi, sin, isclose, atan
 import numpy as np
 
-class convexPoly:
 
-	def __init__(self,p1,p2,p3,p4):
-		self.p1 = p1
-		self.p2 = p2
-		self.p3 = p3
-		self.p4 = p4
-
-		self.bounds = [Line(self.p1,self.p2),Line(self.p2,self.p3),Line(self.p3,self.p4),Line(self.p4,self.p1)]
-
-class Point:
-
-	def __init__(self,x,y):
-		self.x = x
-		self.y = y
-
-class Line:
-	def __init__(self,start,end=None,isDone=False):
-		self.start = start
-		self.end = end
-		self.isDone = isDone
-
-	def isFinished(self,end):
-		if self.isDone:
-			return
-		self.end = end
-		self.isDone = True
+'''
+exw fiat3ei ena dict wste na blepw se poia points antistoixoun poies grammes etsi isws na mporesw meta na xrwmatisw tis perioxes
+na dw mhpws xreiastei na bgalw kapoia pragmata oso anafora tis listes pou apo8ukeuoun tis grammes
+'''
 
 class Voronoi2D:
 
@@ -47,9 +26,11 @@ class Voronoi2D:
 		self.y1 = 0
 
 		points.sort(key=lambda tup: tup[0])
+		self.point_edges = {}
 		print(points)
 		for pts in points:
 			point = Point(pts[0],pts[1])
+			self.point_edges[point] = []
 			self.sites.append(point)
 
 			if point.x < self.x0:
@@ -72,8 +53,9 @@ class Voronoi2D:
 
 		self.poly = convexPoly(Point(self.x0,self.y0),Point(self.x0,self.y1),Point(self.x1,self.y1),Point(self.x1,self.y0))
 
-		self.triangles = Delaunay(points)
-		self.t = Delaunay(points)
+		self.triangles = Delaunay(self.sites)
+
+		#print(point_edges)
 		'''
 		flag = False
 		edges = None
@@ -101,7 +83,6 @@ class Voronoi2D:
 			center = (cx, cy)
 			triangle.circumcenter = center
 		'''
-		
 
 
 	def start(self):
@@ -140,6 +121,7 @@ class Voronoi2D:
 
 	def find_cells(self):
 		for triangle in self.triangles:
+
 			for edge in triangle.edges:
 				#print(edge)
 				isShared = False
@@ -148,11 +130,14 @@ class Voronoi2D:
 						continue
 					for o_edge in other.edges:
 						if LineIsEqual(edge,o_edge) :# and not self.collinear(edge):
-							c1 = Point(triangle.circumcenter[0],triangle.circumcenter[1])
-							c2 = Point(other.circumcenter[0],other.circumcenter[1])
-							self.voronoi_lines.append(Line(c1,c2,True))
-							#triangle.edges.remove(edge)
-							#other.edges.remove(o_edge)
+							c1 = triangle.circumcenter
+							c2 = other.circumcenter
+							line = Line(c1,c2,True)
+							self.point_edges[edge[0]].append(line)
+							self.point_edges[edge[1]].append(line)
+							self.voronoi_lines.append(line)
+							triangle.edges.remove(edge) # ta diagrafw gia na apofugw to na exw 2 akmes ides aplws me antistrofa shmeia
+							other.edges.remove(o_edge)
 							self.sharedEdges.append(edge)
 							self.sharedEdges.append(o_edge)
 							isShared = True
@@ -163,11 +148,11 @@ class Voronoi2D:
 	def find_boundaries(self):
 		for triangle in self.triangles:
 			flag = False
-			center = Point(triangle.circumcenter[0],triangle.circumcenter[1])
+			center = triangle.circumcenter
 			flag = self.isObtuse(triangle)
 			if flag: # center IN
 				for edge in triangle.edges:
-					if edge in self.sharedEdges:
+					if edge in self.sharedEdges: # den polu xreiazetai edw twra afou ta diagrafw pio panw
 						continue
 					p, ps = self.intersect(edge,center)
 					if p is not None:
@@ -175,7 +160,10 @@ class Voronoi2D:
 							self.voronoi_lines.append(Line(p,ps))
 							self.voronoi_lines.append(Line(ps,center))
 						else:
-							self.voronoi_lines.append(Line(p,center))
+							line = Line(p,center)
+							self.voronoi_lines.append(line)
+							self.point_edges[edge[0]].append(line)
+							self.point_edges[edge[1]].append(line)
 					else:
 						print('None')
 			else:
@@ -218,8 +206,8 @@ class Voronoi2D:
 			if edge == o_edge:
 				continue
 			else:
-				if self.dist(Point(edge[0][0],edge[0][1]),Point(edge[1][0],edge[1][1]),mode='euclidian') > self.dist(Point(o_edge[0][0],o_edge[0][1]),Point(o_edge[1][0],o_edge[1][1]),mode='euclidian'):
-					print(self.dist(Point(edge[0][0],edge[0][1]),Point(edge[1][0],edge[1][1]),mode='euclidian'),'>',self.dist(Point(o_edge[0][0],o_edge[0][1]),Point(o_edge[1][0],o_edge[1][1]),mode='euclidian'))
+				if self.dist(Point(edge[0].x,edge[0].y),Point(edge[1].x,edge[1].y),mode='euclidian') > self.dist(Point(o_edge[0].x,o_edge[0].y),Point(o_edge[1].x,o_edge[1].y),mode='euclidian'):
+					#print(self.dist(Point(edge[0][0],edge[0][1]),Point(edge[1][0],edge[1][1]),mode='euclidian'),'>',self.dist(Point(o_edge[0][0],o_edge[0][1]),Point(o_edge[1][0],o_edge[1][1]),mode='euclidian'))
 					flags[i] = True
 					i+=1
 				else:
@@ -231,21 +219,20 @@ class Voronoi2D:
 		
 
 	def isInside(self,p1,p2,p3):
-		triangleArea = (p1[0]*(p2[1]-p3[1])+p2[0]*(p3[1]-p1[1])+p3[0]*(p1[1]-p2[1]))/2.0
+		triangleArea = (p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y))/2.0
 		return abs(triangleArea)
 
 	def dist(self,p0,p1,mode='abs'):
-		#return sqrt((p1.x-p0.x)**2 + (p1.y-p0.y)**2)
 		if mode=='abs':
 			return abs((p1.x-p0.x)+(p1.y-p0.y))
 		elif mode == 'euclidian':
 			return sqrt((p1.x-p0.x)**2 + (p1.y-p0.y)**2)
 
 	def intersect(self,edge,center,isObtuse=False,isHypot=False):
-		x0 = edge[0][0]
-		y0 = edge[0][1]
-		x1 = edge[1][0]
-		y1 = edge[1][1]
+		x0 = edge[0].x
+		y0 = edge[0].y
+		x1 = edge[1].x
+		y1 = edge[1].y
 		if(x1-x0)==0:
 			print('p x')
 			#return None # inf slope -> symetric to y axis 
@@ -277,16 +264,16 @@ class Voronoi2D:
 				#print(atan(x))
 				if center.x > x4 and -1/slope < 0:
 					py = s1*self.x0 + b
-					return Point(self.x0,py), Point(x4,y4)
+					return Point(self.x0,py), None #Point(x4,y4)
 				elif center.x > x4 and -1/slope > 0:
 					py = s1*self.x0 + b
-					return Point(self.x0,py), Point(x4,y4)
+					return Point(self.x0,py), None #Point(x4,y4)
 				elif x4 > center.x and -1/slope < 0:
 					py = s1*self.x1 + b
-					return Point(self.x1,py), Point(x4,y4)
+					return Point(self.x1,py), None #Point(x4,y4)
 				elif x4 > center.x and -1/slope > 0:
 					py = s1*self.x1 + b
-					return Point(self.x1,py), Point(x4,y4)
+					return Point(self.x1,py), None #Point(x4,y4)
 			else:
 				k = ((y1-y0)*(center.x-x0)-(x1-x0)*(center.y-y0))/((y1-y0)**2 + (x1-x0)**2)
 				x4 = center.x - k*(y1-y0)
@@ -312,8 +299,12 @@ class Voronoi2D:
 						return Point(self.x0,py), None
 					#return Point(x4,y4)
 				elif x4 > center.x and -1/slope < 0: # na balw kai edw tin periptwsh me thn hypot
-					py = s1*self.x1 + b
-					return Point(self.x1,py), Point(x4,y4)
+					if isHypot:
+						py = s1*self.x1 + b
+						return Point(self.x1,py), None
+					else:
+						py = s1*self.x1 + b
+						return Point(self.x1,py), None
 					#return Point(x4,y4)
 				elif x4 > center.x and -1/slope > 0:
 					if isHypot:
@@ -334,28 +325,45 @@ class Voronoi2D:
 			p1 = o.end
 			print('[',(p0.x,p0.y),',',(p1.x,p1.y),']')
 
-	def showVoronoi(self):
+	def showVoronoi(self,withColors=False,showTriangles=False):
 		fig, ax = plt.subplots()
 		ax.set_ylim([self.y0,self.y1])
 		ax.set_xlim([self.x0,self.x1])
 
-		for triangle in self.triangles:
-			plt.plot(triangle.circumcenter[0],triangle.circumcenter[1],'rx')
-		#plt.plot(self.triangles[0].circumcenter,'kx')
-		for point in self.sites:
-			plt.plot(point.x,point.y,'ro')
+		if withColors==False:
 
-		for line in self.poly.bounds:
-			plt.plot((line.start.x,line.end.x),(line.start.y,line.end.y),'k')
+			for triangle in self.triangles:
+				plt.plot(triangle.circumcenter.x,triangle.circumcenter.y,'rx')
+			
+			for point in self.sites:
+				plt.plot(point.x,point.y,'ro')
 
-		for line in self.voronoi_lines:
-			plt.plot((line.start.x,line.end.x),(line.start.y,line.end.y),'k')
+			for line in self.poly.bounds:
+				plt.plot((line.start.x,line.end.x),(line.start.y,line.end.y),'k')
 
-		
-		for t in self.t:
-			for edge in t.edges:
-				plt.plot((edge[0][0],edge[1][0]),(edge[0][1],edge[1][1]),'y')
-		
+			for line in self.voronoi_lines:
+				plt.plot((line.start.x,line.end.x),(line.start.y,line.end.y),'k')
+
+			if showTriangles==True:
+				for t in self.triangles:
+					for edge in t.edges:
+						plt.plot((edge[0][0],edge[1][0]),(edge[0][1],edge[1][1]),'slategrey')
+
+				for edge in self.sharedEdges:
+					plt.plot((edge[0].x,edge[1].x),(edge[0].y,edge[1].y),'slategrey')
+		else:
+			for point in self.sites:
+				plt.plot(point.x,point.y,'ko')
+
+			if showTriangles==True:
+				for t in self.triangles:
+					for edge in t.edges:
+						plt.plot((edge[0].x,edge[1].x),(edge[0].y,edge[1].y),'slategrey')
+
+				for edge in self.sharedEdges:
+					plt.plot((edge[0].x,edge[1].x),(edge[0].y,edge[1].y),'slategrey')
+
+			print(self.point_edges)
 
 		plt.show()
 
@@ -371,42 +379,4 @@ def inside(triangle):
 	if(a>0 and b>0 and 1.0-a-b>0):
 		return True
 	return False
-
-def isObtuse(triangle): # na dw ti paizei me ta amblugwnia kai na ftia3w ligo tis peirptwseis douleuoume me circumecenter twra oxi centroid kapou paei na doume ....
-	print('triangle')
-	print(triangle.edges)
-	print('end')
-	a = triangle.edges[2]
-	b = triangle.edges[0]
-	c = triangle.edges[1]
-
-	da = sqrt((a[0][0]-a[1][0])**2+(a[0][1]-a[1][1])**2)
-	db = sqrt((b[0][0]-b[1][0])**2+(b[0][1]-b[1][1])**2)
-	dc = sqrt((c[0][0]-c[1][0])**2+(c[0][1]-c[1][1])**2)
-	print('a',da)
-	print('b',db)
-	print('c',dc)
-	slope1 = (a[1][1]-a[0][1])/(a[1][0]-a[0][0])
-	#da**2 + db**2 < dc**2 and 
-	if db > da and db > dc:
-		hypot = b
-	elif da > dc and da > db:
-		hypot = a
-	elif dc > da and dc > db:
-		hypot = c
-
-	if slope1 > 0:
-		return True, hypot
-	return False, None
-	'''
-	elif db > da and db > dc:
-		if da**2 + dc**2 < db**2:
-			return True, triangle.edges[0]
-		return False, None
-	elif da > dc and da > db:
-		if dc**2 + db**2 < da**2:
-			return True, triangle.edges[2]
-		return False, None
-	'''
-
 

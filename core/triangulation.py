@@ -7,19 +7,20 @@
 import matplotlib.pyplot as plt
 from math import inf, sqrt
 import numpy as np
+from .structs import *
 
 
 def getCircumcenter(a,b,c):
-	ad = a[0]*a[0] + a[1]*a[1]
-	bd = b[0]*b[0] + b[1]*b[1]
-	cd = c[0]*c[0] + c[1]*c[1]
-	D = 2*(a[0]*(b[1]-c[1])+b[0]*(c[1]-a[1])+c[0]*(a[1]-b[1]))
-	centerX = 1 / D * (ad * (b[1] - c[1]) + bd * (c[1] - a[1]) + cd * (a[1] - b[1]))
-	centerY = 1 / D * (ad * (c[0] - b[0]) + bd * (a[0] - c[0]) + cd * (b[0] - a[0]))
-	return centerX, centerY
+	ad = a.x*a.x + a.y*a.y
+	bd = b.x*b.x + b.y*b.y
+	cd = c.x*c.x + c.y*c.y
+	D = 2*(a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y))
+	centerX = 1 / D * (ad * (b.y - c.y) + bd * (c.y - a.y) + cd * (a.y - b.y))
+	centerY = 1 / D * (ad * (c.x - b.x) + bd * (a.x - c.x) + cd * (b.x - a.x))
+	return Point(centerX, centerY)
 
 def eDist(x,y):
-	return sqrt(pow((x[0]-y[0]),2)+pow((x[1]-y[1]),2))
+	return sqrt(pow((x.x-y.x),2)+pow((x.y-y.y),2))
 
 def LineIsEqual(line1,line2):
     if (line1[0] == line2[0] and line1[1] == line2[1]) or (line1[0] == line2[1] and line1[1] == line2[0]):
@@ -28,21 +29,21 @@ def LineIsEqual(line1,line2):
 
 def findMin(pos):
 	x, y = inf, inf
-	for t, k in pos:
-		if x>t:
-			x = t
-		if y > k:
-			y = k
-	return x, y
+	for p in pos:
+		if x > p.x:
+			x = p.x
+		if y > p.y:
+			y = p.y
+	return Point(x, y)
 
 def findMax(pos):
 	x, y = 0, 0
-	for t, k in pos:
-		if x<t:
-			x = t
-		if y < k:
-			y = k
-	return x, y
+	for p in pos:
+		if x < p.x:
+			x = p.x
+		if y < p.y:
+			y = p.y
+	return Point(x, y)
 
 class Triangle:
 	def __init__(self,a,b,c):
@@ -75,9 +76,9 @@ def Delaunay(points):
 	print('min:',minPoint)
 	print('max:',maxPoint)
 
-	sxmax = (maxPoint[0]*2, minPoint[1]/2) # b
-	sxmin = (minPoint[0]*(-2), minPoint[1]/2) # a
-	symax = ((sxmin[0]+sxmax[0])/2, maxPoint[1]*2) # c
+	sxmax = Point(maxPoint.x*2, minPoint.y/2) # b
+	sxmin = Point(minPoint.x*(-2), minPoint.y/2) # a
+	symax = Point((sxmin.x+sxmax.x)/2, maxPoint.y*2) # c
 	#print('sxmax:',sxmax)
 	#print('sxmin:',sxmin)
 	#print('symax:',symax)
