@@ -1,8 +1,12 @@
-from .triangulation import Delaunay, LineIsEqual
+from .triangulation import Delaunay, LineIsEqual, findMin, findMax
 from .structs import *
 import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
 from math import inf, sqrt, floor, cos, pi, sin, isclose, atan
 import numpy as np
+import random
 
 
 '''
@@ -18,6 +22,7 @@ class Voronoi2D:
 		self.sites = []
 		self.triangles = []
 		self.voronoi_lines = []
+		self.rects = []
 
 		# bounds
 		self.x0 = 0
@@ -27,10 +32,12 @@ class Voronoi2D:
 
 		points.sort(key=lambda tup: tup[0])
 		self.point_edges = {}
+		self.boundary_edges = {}
 		print(points)
 		for pts in points:
 			point = Point(pts[0],pts[1])
 			self.point_edges[point] = []
+			self.boundary_edges[point] = []
 			self.sites.append(point)
 
 			if point.x < self.x0:
@@ -49,7 +56,7 @@ class Voronoi2D:
 		self.y0 -= dy
 		self.y1 += dy
 
-		self.sharedEdges = []
+		self.sharedEdges = {}
 
 		self.poly = convexPoly(Point(self.x0,self.y0),Point(self.x0,self.y1),Point(self.x1,self.y1),Point(self.x1,self.y0))
 
@@ -88,8 +95,12 @@ class Voronoi2D:
 	def start(self):
 
 		if len(self.triangles) == 1:
+			for triangle in self.triangles:
+				self.sharedEdges[triangle] = []
 			self.find_boundaries()
 		elif len(self.triangles) >= 2:
+			for triangle in self.triangles:
+				self.sharedEdges[triangle] = []
 			self.find_cells()
 			self.find_boundaries()
 		elif len(self.triangles)==0:
@@ -121,13 +132,13 @@ class Voronoi2D:
 
 	def find_cells(self):
 		for triangle in self.triangles:
-
 			for edge in triangle.edges:
 				#print(edge)
 				isShared = False
 				for other in self.triangles:
 					if other == triangle:
 						continue
+					#self.sharedEdges[other] = []
 					for o_edge in other.edges:
 						if LineIsEqual(edge,o_edge) :# and not self.collinear(edge):
 							c1 = triangle.circumcenter
@@ -138,8 +149,8 @@ class Voronoi2D:
 							self.voronoi_lines.append(line)
 							triangle.edges.remove(edge) # ta diagrafw gia na apofugw to na exw 2 akmes ides aplws me antistrofa shmeia
 							other.edges.remove(o_edge)
-							self.sharedEdges.append(edge)
-							self.sharedEdges.append(o_edge)
+							self.sharedEdges[triangle].append(edge)
+							self.sharedEdges[other].append(o_edge)
 							isShared = True
 						#elif LineIsEqual(edge,o_edge) and self.collinear(edge):
 						#	other.edges.remove(o_edge)
@@ -152,34 +163,29 @@ class Voronoi2D:
 			flag = self.isObtuse(triangle)
 			if flag: # center IN
 				for edge in triangle.edges:
-					if edge in self.sharedEdges: # den polu xreiazetai edw twra afou ta diagrafw pio panw
+					if edge in self.sharedEdges[triangle]: # den polu xreiazetai edw twra afou ta diagrafw pio panw
 						continue
-					p, ps = self.intersect(edge,center)
+					p, slope, b = self.intersect(edge,center)
 					if p is not None:
-						if ps is not None:
-							self.voronoi_lines.append(Line(p,ps))
-							self.voronoi_lines.append(Line(ps,center))
-						else:
-							line = Line(p,center)
-							self.voronoi_lines.append(line)
-							self.point_edges[edge[0]].append(line)
-							self.point_edges[edge[1]].append(line)
+						line = Line(p,center,True,slope,b,center)
+						self.voronoi_lines.append(line)
+						self.boundary_edges[edge[0]].append(line)
+						self.boundary_edges[edge[1]].append(line)
 					else:
 						print('None')
 			else:
 				for edge in triangle.edges:
-					if edge in self.sharedEdges:
+					if edge in self.sharedEdges[triangle]:
 						continue
 					print(edge)
 					isHypot = self.isHypot(edge,triangle)
 					print("HYPOT",isHypot)
-					p, ps = self.intersect(edge,center,True,isHypot)
+					p, slope, b = self.intersect(edge,center,True,isHypot)
 					if p is not None:
-						if ps is not None:
-							self.voronoi_lines.append(Line(p,ps))
-							self.voronoi_lines.append(Line(ps,center))
-						else:
-							self.voronoi_lines.append(Line(p,center))
+						line = Line(p,center,True,slope,b,center)
+						self.voronoi_lines.append(line)
+						self.boundary_edges[edge[0]].append(line)
+						self.boundary_edges[edge[1]].append(line)
 				
 		print(self.voronoi_lines,len(self.voronoi_lines))
 
@@ -202,12 +208,16 @@ class Voronoi2D:
 	def isHypot(self,edge,triangle):
 		flags = [False]*2
 		i=0
-		for o_edge in triangle.edges:
+		if len(self.sharedEdges[triangle]) > 0: # an uparxoun koines akmes tote epeidh tis diagrafw apo ta trigwna gia logous(des panw) meta enonwn tis listes wste na exw ousiastika olo to trigwno pali
+			edgesList = triangle.edges + self.sharedEdges[triangle]
+		else:
+			edgesList = triangle.edges
+		for o_edge in edgesList:
 			if edge == o_edge:
 				continue
 			else:
-				if self.dist(Point(edge[0].x,edge[0].y),Point(edge[1].x,edge[1].y),mode='euclidian') > self.dist(Point(o_edge[0].x,o_edge[0].y),Point(o_edge[1].x,o_edge[1].y),mode='euclidian'):
-					#print(self.dist(Point(edge[0][0],edge[0][1]),Point(edge[1][0],edge[1][1]),mode='euclidian'),'>',self.dist(Point(o_edge[0][0],o_edge[0][1]),Point(o_edge[1][0],o_edge[1][1]),mode='euclidian'))
+				if self.dist(edge[0],edge[1],mode='euclidian') > self.dist(o_edge[0],o_edge[1],mode='euclidian'):
+					print(self.dist(edge[0],edge[1],mode='euclidian'),'>',self.dist(o_edge[0],o_edge[1],mode='euclidian'))
 					flags[i] = True
 					i+=1
 				else:
@@ -239,17 +249,17 @@ class Voronoi2D:
 			m = (x0+x1)/2, (y1+y0)/2
 			#if m[1] < 
 			if m[0] < center.x:
-				return Point(self.x0,center.y), None
+				return Point(self.x0,center.y), 0.0, center.y
 			else:
-				return Point(self.x0,center.y), None
+				return Point(self.x0,center.y), 0.0, center.y
 		elif(y1-y0)==0:
 			print('p y')
 			m = (x0+x1)/2, (y1+y0)/2
 			#if m[1] < 
 			if m[1] < center.y:
-				return Point(center.x,self.y0), None
+				return Point(center.x,self.y0), None, self.y0
 			else:
-				return Point(center.x,self.y1), None
+				return Point(center.x,self.y1), None, self.y1
 		else:
 
 			if isObtuse==False: # na dw ligo thn ka8etothta twn grammwn
@@ -264,16 +274,16 @@ class Voronoi2D:
 				#print(atan(x))
 				if center.x > x4 and -1/slope < 0:
 					py = s1*self.x0 + b
-					return Point(self.x0,py), None #Point(x4,y4)
+					return Point(self.x0,py), slope, b
 				elif center.x > x4 and -1/slope > 0:
 					py = s1*self.x0 + b
-					return Point(self.x0,py), None #Point(x4,y4)
+					return Point(self.x0,py), slope, b
 				elif x4 > center.x and -1/slope < 0:
 					py = s1*self.x1 + b
-					return Point(self.x1,py), None #Point(x4,y4)
+					return Point(self.x1,py), slope, b
 				elif x4 > center.x and -1/slope > 0:
 					py = s1*self.x1 + b
-					return Point(self.x1,py), None #Point(x4,y4)
+					return Point(self.x1,py), slope, b
 			else:
 				k = ((y1-y0)*(center.x-x0)-(x1-x0)*(center.y-y0))/((y1-y0)**2 + (x1-x0)**2)
 				x4 = center.x - k*(y1-y0)
@@ -286,33 +296,33 @@ class Voronoi2D:
 				if center.x > x4 and -1/slope < 0:
 					if isHypot:
 						py = s1*self.x1 + b
-						return Point(self.x1,py), None
+						return Point(self.x1,py), slope, b
 					else:
 						py = s1*self.x0 + b
-						return Point(self.x0,py), None
+						return Point(self.x0,py), slope, b
 				elif center.x > x4 and -1/slope > 0:
 					if isHypot:
 						py = s1*self.x1 + b
-						return Point(self.x1,py), None
+						return Point(self.x1,py), slope, b
 					else:
 						py = s1*self.x0 + b
-						return Point(self.x0,py), None
+						return Point(self.x0,py), slope, b
 					#return Point(x4,y4)
 				elif x4 > center.x and -1/slope < 0: # na balw kai edw tin periptwsh me thn hypot
 					if isHypot:
 						py = s1*self.x1 + b
-						return Point(self.x1,py), None
+						return Point(self.x1,py), slope, b
 					else:
 						py = s1*self.x1 + b
-						return Point(self.x1,py), None
+						return Point(self.x1,py), slope, b
 					#return Point(x4,y4)
 				elif x4 > center.x and -1/slope > 0:
 					if isHypot:
 						py = s1*self.x0 + b
-						return Point(self.x0,py), None
+						return Point(self.x0,py), slope, b
 					else:
 						py = s1*self.x1 + b
-						return Point(self.x1,py), None
+						return Point(self.x1,py), slope, b
 
 	def collinear(self,e1):
 		if e1[0][0]==e1[0][1] or e1[0][1] == e1[1][0]:
@@ -324,6 +334,87 @@ class Voronoi2D:
 			p0 = o.start
 			p1 = o.end
 			print('[',(p0.x,p0.y),',',(p1.x,p1.y),']')
+
+	def colorGeneratorHex(self):
+		num_of_colors = len(self.sites)
+		pointColor = {}
+		for point in self.sites:
+			pointColor[point] = "#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
+		return pointColor
+
+
+	def generateRects(self):
+		for point in self.sites:
+			lines = []
+			print('Point:',point.x,point.y)
+			#print('color',colors[point])
+			print('No.Lines:',len(self.boundary_edges[point]))
+			for line in self.boundary_edges[point]:
+				minP = findMin(line.getList())
+				maxP = findMax(line.getList())
+				lines.append(line)
+				#print('line',minX,maxX,line.slope)
+				#print('Min:',minX)
+				#print('Max:',maxX)
+				#A = np.linspace(minX,maxX)
+				if minP.x <= self.x0:
+					print('1')
+					if line.center.y > point.y:
+						print('10')
+						y = self.y0
+						p = Point(minP.x,y)
+						line = Line(p,line.start)
+						lines.append(line)
+					elif point.y >= line.center.y:
+						print('11')
+						y = self.y1
+						p = Point(minP.x,y)
+						line = Line(p,line.start)
+						lines.append(line)
+				elif minP.y <= self.y0:
+					print('2')
+					if line.center.x > point.x:
+						print('20')
+						x = self.x0
+						p = Point(x,minP.y)
+						line = Line(p,line.start)
+						lines.append(line)
+					elif line.center.x < point.x:
+						print('21')
+						x = self.x1
+						p = Point(x,minP.y)
+						line = Line(p,line.start)
+						lines.append(line)
+				elif maxP.y >= self.y1:
+					print('3')
+					if line.center.x < point.x:
+						print('31')
+						x = self.x1
+						p = Point(x,maxP.y)
+						line = Line(p,line.start)
+						lines.append(line)
+					elif line.center.x > point.x:
+						print('32')
+						x = self.x0
+						p = Point(x,maxP.y)
+						line = Line(p,line.start)
+						lines.append(line)
+				elif maxP.x >= self.x1:
+					print('4')
+					if line.center.y < point.y:
+						print('41')
+						y = self.y1
+						p = Point(maxP.x,y)
+						line = Line(p,line.start)
+						lines.append(line)
+					elif line.center.y > point.y:
+						print('42')
+						y = self.y0
+						p = Point(maxP.x,y)
+						line = Line(p,line.start)
+						lines.append(line)
+			self.rects.append(Rect(lines))
+
 
 	def showVoronoi(self,withColors=False,showTriangles=False):
 		fig, ax = plt.subplots()
@@ -352,8 +443,47 @@ class Voronoi2D:
 				for edge in self.sharedEdges:
 					plt.plot((edge[0].x,edge[1].x),(edge[0].y,edge[1].y),'slategrey')
 		else:
+			colors = self.colorGeneratorHex()
+			colors = np.asarray(colors)
+			#print('colors:',colors)
 			for point in self.sites:
 				plt.plot(point.x,point.y,'ko')
+
+			for line in self.poly.bounds:
+				plt.plot((line.start.x,line.end.x),(line.start.y,line.end.y),'k')
+
+			for line in self.voronoi_lines:
+				plt.plot((line.start.x,line.end.x),(line.start.y,line.end.y),'k')
+
+			# for boundary points first
+			#self.generateRects()
+			'''
+			patches = []
+			for point in self.sites:
+				l = len(self.boundary_edges[point])
+				vertices = []
+				#vertices.shape = (l,l)
+				for line in self.boundary_edges[point]:
+					tmp = [line.start.x,line.start.y],[line.end.x,line.end.y]
+					vertices.append(tmp)
+					#vertices = np.append(vertices,[line.end.x,line.end.y])
+				print('V:',np.asarray(vertices))
+				print('V:',np.asarray(vertices).shape)
+				vertices = np.asarray(vertices).reshape((4,2))
+				print(vertices)
+				print('V:',vertices.shape)
+				poly = Polygon(vertices,True)
+				patches.append(poly)
+
+			print(patches[0].get_xy())
+
+			p = PatchCollection(patches,cmap=matplotlib.cm.jet)
+			p.set_array(colors)
+
+			ax.add_collection(p)
+			'''
+
+			#print(self.rects)
 
 			if showTriangles==True:
 				for t in self.triangles:
@@ -363,7 +493,7 @@ class Voronoi2D:
 				for edge in self.sharedEdges:
 					plt.plot((edge[0].x,edge[1].x),(edge[0].y,edge[1].y),'slategrey')
 
-			print(self.point_edges)
+			#print(self.point_edges)
 
 		plt.show()
 
@@ -380,3 +510,24 @@ def inside(triangle):
 		return True
 	return False
 
+'''
+if line.slope !=None:
+						y = line.intercept + line.slope*A
+						if point.y < line.center.y:
+							
+							print('normal slope')
+							plt.fill_between(A, y, color=colors[point])
+						else:
+							#print(y)
+							#print(self.y1 + y)
+							y_inv = self.y1 + y
+							print('Not normal slope')
+							plt.fill_between(A, y,y_inv,where=y_inv>y, color=colors[point])
+					else:
+						if point.y < line.center.y:
+							print('normal')
+							plt.fill_between(A, self.y0, color=colors[point])
+						else:
+							print('Not normal')
+							plt.fill_between(A, self.y1, color=colors[point])
+'''
