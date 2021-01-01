@@ -1,7 +1,7 @@
 #from voronoi import Voronoi
 #from core.voronoi import Voronoi1
-from core.triangulation import Delaunay
-#from core.Voronoi2D import Voronoi2D
+#from core.triangulation import Delaunay
+from core.Voronoi2D import Voronoi2D
 import random
 import numpy as np
 #from scipy.spatial import Voronoi, voronoi_plot_2d
@@ -52,16 +52,9 @@ if __name__=="__main__":
 	#v.start()
 	#v.get_output()
 	#v.showVoronoi(showTriangles=True,withColors=True) # showTriangles=True withColors=True
-	points = generatePoints(20)
+	points = generatePoints(10)
 	print('points',points)
-	center = np.mean(points,axis=0)
-
-	print('center',center)
-	d = Delaunay(center)
-	for point in points:
-		d.addPoint(point)
-
-	t = d.getTriangles()
-	print(t)
-	d.plotTriangles(points,t,300)
-
+	
+	vor = Voronoi2D(points)
+	vor.start()
+	vor.plotVoronoi()

@@ -34,11 +34,12 @@ class Delaunay:
 	def circumcenter(self,triangle):
 		#https://en.wikipedia.org/wiki/Barycentric_coordinate_system
 		
-		points = np.asarray([self.coords[v] for v in triangle]) #2x2 mat shmeia twn korufwn twn trigwnwn
+		points = np.asarray([self.coords[v] for v in triangle]) #3x2 mat shmeia twn korufwn twn trigwnwn
 		#print(points)
 		points2 = np.dot(points,points.T) # 3x3 mat deixnei poia korufh einai ka8eth se poia kai poia korufh einai antiroph tespa deixnei sxeseis dieu8unseis
 		#print('dot:',points2)
-		A = np.bmat([[2 * points2,[[1],
+		#inner product matrix
+		A = np.bmat([[2*points2,[[1],
 									[1],
 									[1]]],
 							[[[1,1,1,0]]]]) # mplok mhtrww pou periexei tis "deiu8unseis twn korufwn meta3u tous" + tis korufes
@@ -48,17 +49,17 @@ class Delaunay:
 		#print('b:',b)
 		x = np.linalg.solve(A,b)
 		#print('x:',x)
-		bcoords = x[:-1] # barukentrikes suntetagmenes 
+		bcoords = x[:-1] # barukentrikes suntetagmenes 1x3
 		#print('bc',bcoords)
 		center = np.dot(bcoords,points) # kartesianes suntetagmenes apo tou baruketrikous suntelestes + shmeiea
 		#print('center',center)
 
-		radius = np.sum(np.square(points[0]-center))
+		radius = np.linalg.norm(points[0] - center) # euklidia apostash
 		return (center, radius)
 
 	def inCircle(self,triangle,p):
 		center, radius = self.circles[triangle]
-		return np.sum(np.square(center-p)) <= radius
+		return np.linalg.norm(center - p) <= radius
 
 	def addPoint(self,p):
 
@@ -114,13 +115,9 @@ class Delaunay:
 			self.triangles[triangle][1] = new_triangles[(i+1) % N] # next
 			self.triangles[triangle][2] = new_triangles[(i-1) % N] # prev
 
-	def getTriangles(self):
+	def getInfo(self):
 
-		triangles = []
-		for (a,c,b) in self.triangles:
-			if a>3 and b>3 and c>3:
-				triangles.append((a-4,b-4,c-4))
-		return triangles
+		return self.triangles, self.circles, self.coords
 
 	def plotTriangles(self,points,triangles,radius):
 		x, y = zip(*points)
