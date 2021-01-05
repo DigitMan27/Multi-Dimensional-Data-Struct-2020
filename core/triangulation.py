@@ -11,7 +11,7 @@ import numpy as np
 from .structs import *
 
 class Delaunay:
-	def __init__(self,center=(0,0),radius=9999):
+	def __init__(self,center=(0,0),radius=1000000):
 		center = np.asarray(center)
 		self.coords = [center+radius*np.array((-1,-1)),
 					   center+radius*np.array((1,-1)),
@@ -55,26 +55,30 @@ class Delaunay:
 		#print('center',center)
 
 		radius = np.linalg.norm(points[0] - center) # euklidia apostash
+		#print('rad',radius)
 		return (center, radius)
 
 	def inCircle(self,triangle,p):
 		center, radius = self.circles[triangle]
 		return np.linalg.norm(center - p) <= radius
 
-	def addPoint(self,p):
+	def addPoint(self,point):
 
-		point = np.asarray(p)
+		#print('p:',point)
+		point = np.asarray(point)
 		idx = len(self.coords)
 
-		self.coords.append(p)
+		self.coords.append(point)
 
 		bad_triangles = []
 		for triangle in self.triangles:
-			if self.inCircle(triangle,p):
+			if self.inCircle(triangle,point):
 				bad_triangles.append(triangle)
 
 		boundary = []
 		triangle = bad_triangles[0] # "random triangle"
+		if bad_triangles[0]==None:
+			triangle = bad_triangles[1]
 		edge = 0 # "random" edge
 		while True:
 			triangle_opposite = self.triangles[triangle][edge]
@@ -96,6 +100,7 @@ class Delaunay:
 
 		new_triangles=[]
 		for (e0, e1, triangle_opposite) in boundary:
+			#print('edge:',e0, e1, triangle_opposite)
 			triangle = (idx, e0, e1) # dimourgw neo trigwno me to shmeio p kai tis akrianes akmes
 			self.circles[triangle] = self.circumcenter(triangle)
 			self.triangles[triangle] = [triangle_opposite, None, None] # 8ese san geitona tou trigwnou p ftia3ame to apenanti trigwno
