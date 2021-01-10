@@ -36,6 +36,7 @@ class Delaunay:
 		
 		points = np.asarray([self.coords[v] for v in triangle]) #3x2 mat shmeia twn korufwn twn trigwnwn
 		#print(points)
+		#inner product matrix
 		points2 = np.dot(points,points.T) # 3x3 mat deixnei poia korufh einai ka8eth se poia kai poia korufh einai antiroph tespa deixnei sxeseis dieu8unseis
 		#print('dot:',points2)
 		#inner product matrix
@@ -101,7 +102,7 @@ class Delaunay:
 		new_triangles=[]
 		for (e0, e1, triangle_opposite) in boundary:
 			#print('edge:',e0, e1, triangle_opposite)
-			triangle = (idx, e0, e1) # dimourgw neo trigwno me to shmeio p kai tis akrianes akmes
+			triangle = (idx, e0, e1) # dimourgw neo trigwno me to index tou shmeiou p kai tis akrianes akmes
 			self.circles[triangle] = self.circumcenter(triangle)
 			self.triangles[triangle] = [triangle_opposite, None, None] # 8ese san geitona tou trigwnou p ftia3ame to apenanti trigwno
 			# prospa8hse na 8eseis san geitona tou opposite triangle to neo trigwno
