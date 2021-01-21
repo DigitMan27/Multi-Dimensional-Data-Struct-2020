@@ -1,21 +1,46 @@
-from core.Voronoi2D import Voronoi2D
+'''
+
+Author : Κωνσταντίνος Αδαμόπουλος
+ΑΜ: 236270 (1043750)
+Ετος: 7ο
+
+'''
+
 import random
 import numpy as np
 import matplotlib.pyplot as plt
 import geopandas as gpd
-import pandas as pd
+
+from core.Voronoi2D import Voronoi2D
 
 
-def generatePoints(numSeeds,rad):
-    radius = rad
-    seeds = radius * np.random.random((numSeeds, 2))
-    return seeds
+def generatePoints(numSeeds):
+	'''
+		Η συνάρτηση αυτή παράγει τυχαία 2D σημεία 
+		το όρισμα numSeeds αφορά τόν αριθμό των σημείων .
+	'''
+	radius = 100
+	seeds = radius * np.random.random((numSeeds, 2))
+	return seeds
     
 
-def loadGeoData(file,gmap,size):
-	#fig, ax = plt.subplots()
-	#plt.axis('equal')
-	points = gpd.read_file(file) #geometry[0].centroid.to_crs()
+def loadGeoDataset1(size):
+	'''
+		Η συναρτηση αυτη φορτώνει την πολιτεια της Νεας Υορκης 
+		και καποια σημεια ενδιαφέροντος και τα χρησιμοποιώ ωστε να αναπαράγω το δίαγραμμα
+		Voronoi των σημείων αυτων . 
+
+		Πηγες: 
+			Το αρχείο της μεταβλητής gmap το πήρα απο :
+			https://tapiquen-sig.jimdofree.com/english-version/free-downloads/united-states/
+			
+			Το αρχείο της μεταβλητής file το πήρα απο :
+			https://www1.nyc.gov/site/doitt/residents/gis-2d-data.page
+
+	'''
+	file = "data/dataset1/Points Of Interest/geo_export_d771d7a5-ef72-43f8-8b2c-67a3549235c5.shp"
+	gmap = "data/USA_States/USA_States.shp"
+	points = gpd.read_file(file)
 	points = points.to_crs({"init": "EPSG:4326"})
 	city = gpd.read_file(gmap)
 	city = city.to_crs(points.crs)
@@ -25,40 +50,73 @@ def loadGeoData(file,gmap,size):
 	numOfPoints = points.shape[0]
 
 	dataSize = points.shape[0]
-	#print(dataSize)
 	if dataSize > size:
-		
-		#city.plot(ax=ax,alpha=0.3, edgecolor="black", facecolor="white")
-		#points.plot(ax=ax,alpha = 0.4, color="red", marker='$\\bigtriangledown$',)
-		#plt.show()
 
 		x = points.geometry.x[0:size]
 		y = points.geometry.y[0:size]
 
-		poly_centers = np.array([[i,j] for i,j in zip(x,y)])
-		max_val_x = max(x)
-		max_val_y = max(y)
-		min_val_x = min(x)
-		min_val_y = min(y)
-		max_point = [max_val_x, max_val_y]
-		min_point = [min_val_x,min_val_y]
-		return poly_centers[0:size,:], city, numOfPoints
+		intrest_points_nparr = np.array([[i,j] for i,j in zip(x,y)])
+		
+		return intrest_points_nparr[0:size,:], city, size
 	else:
 		return [],[],[],[]
-	
 
+
+def loadGeoDataset2():
+	'''
+		Η συναρτηση αυτη φορτώνει την πρωτέυουσα που έχει η κάθε πολιτεία
+		και τις πολιτείες της Αμερικής. 
+
+		Πηγες: 
+			Το αρχείο της μεταβλητής gmap το πήρα απο :
+			https://tapiquen-sig.jimdofree.com/english-version/free-downloads/united-states/
+			
+			Το αρχείο της μεταβλητής file το πήρα απο :
+			https://tapiquen-sig.jimdofree.com/english-version/free-downloads/united-states/
+
+	'''
+	file = "data/dataset2/USA_Capitals/USA_Capitals.shp"
+	gmap = "data/USA_States/USA_States.shp"
+	points = gpd.read_file(file)
+	points = points.to_crs({"init": "EPSG:4326"})
+	x = points.geometry.x
+	y = points.geometry.y
+	capital_points_nparr = np.array([[i,j] for i,j in zip(x,y)])
+
+	states = gpd.read_file(gmap,header=None)
+	states = states.to_crs(points.crs)
+	
+	return capital_points_nparr, states.geometry
 
 if __name__=="__main__":
-	#file = "data/TNC_Lands_Illinois.shp/TNC_Lands_Illinois.shp"
-	file = "data/Points Of Interest/geo_export_d771d7a5-ef72-43f8-8b2c-67a3549235c5.shp"
-	gmap = "data/USA_States/USA_States.shp"#USA_Cities_Towns/USA_Cities_Towns.shp" #cb_2018_us_state_5m/cb_2018_us_state_5m.shp"
-	points, city, totalSize = loadGeoData(file,gmap,100)
-	print('Number of Points:',totalSize)
 	
+	# Παραγωγή διαγράμματος Voronoi τυχαίων σημείων
+	'''
+	points = generatePoints(100)
+	vor = Voronoi2D(points)
+	vor.start()
+	vor.plotVoronoi()
+	'''	
+
+	# Παραγωγή διαγράμματος Voronoi ενος συνόλου των σημείων ενδιαφέροντος που υπάρχουν στην Νεα Υορκη .
+	
+	#points, city, totalSize = loadGeoDataset1(100)
+	#print('Number of Points:',totalSize)
+	#print(city)
+	'''
 	if len(points)>0:
 		vor = Voronoi2D(points)
 		vor.start()
 		vor.plotVoronoi(city=city)
 	else:
-		print('Too much points!!!')
+		print('Εχείς εισάγει παραπάνω σημεια απο ότι περιέχονται στο Dataset.')
+	
+	'''
+	# Παραγωγή διαγράμματος Voronoi των πρωτευουσών των πολειτειών της Αμερικής.
+
+	
+	points, states = loadGeoDataset2()
+	vor = Voronoi2D(points)
+	vor.start()
+	vor.plotVoronoi(city=states)
 	

@@ -1,5 +1,5 @@
 '''
-Υλοποίηση του Bowyer–Watson algorithm ωστε να 
+Υλοποίηση του Bowyer–Watson incremental algorithm ωστε να 
 υπολογίζω την Delaunay Triangulation για Ν σημεία στον 2D χώρο
 
 '''
@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 from math import inf, sqrt
 import numpy as np
-from .structs import *
 
 class Delaunay:
 	def __init__(self,center=(0,0),radius=1000000):
@@ -21,7 +20,7 @@ class Delaunay:
 		self.triangles = {}
 		self.circles = {}
 
-		# counter clock wise triangles 
+		# counter clock wise τριγωνα
 		T1 = (0,1,3) 
 		T2 = (2,3,1)
 
@@ -32,31 +31,26 @@ class Delaunay:
 			self.circles[triangle] = self.circumcenter(triangle)
 
 	def circumcenter(self,triangle):
-		#https://en.wikipedia.org/wiki/Barycentric_coordinate_system
 		
-		points = np.asarray([self.coords[v] for v in triangle]) #3x2 mat shmeia twn korufwn twn trigwnwn
-		#print(points)
-		#inner product matrix
-		points2 = np.dot(points,points.T) # 3x3 mat deixnei poia korufh einai ka8eth se poia kai poia korufh einai antiroph tespa deixnei sxeseis dieu8unseis
-		#print('dot:',points2)
-		#inner product matrix
+		points = np.asarray([self.coords[v] for v in triangle]) #3x2 μητρωο σημεια των κορυφών του τριγωνου
+		
+		# 3x3 μητρωο εσωτερικου γινομένου μεταξυ των κορυφών η διαγωνιος δινει το μετρο και οι γραμμεσ,στηλεσ με i!=j δινουν τις σχεσεις καθετοτητας ή μη των κορυφων.
+		points2 = np.dot(points,points.T) 
+		
 		A = np.bmat([[2*points2,[[1],
 									[1],
 									[1]]],
-							[[[1,1,1,0]]]]) # mplok mhtrww pou periexei tis "deiu8unseis twn korufwn meta3u tous" + tis korufes
-		#print('A:',A)
-		b = np.hstack((np.sum(points*points,axis=1),[1])) # dianusma b periexei to metro 
-		#print(points*points)
-		#print('b:',b)
-		x = np.linalg.solve(A,b)
-		#print('x:',x)
-		bcoords = x[:-1] # barukentrikes suntetagmenes 1x3
-		#print('bc',bcoords)
-		center = np.dot(bcoords,points) # kartesianes suntetagmenes apo tou baruketrikous suntelestes + shmeiea
-		#print('center',center)
+							[[[1,1,1,0]]]]) # μπλοκ μητρωο του μητρωου εσωτερικου γινομένου και των κορυφών
+		
+		b = np.hstack((np.sum(points*points,axis=1),[1])) # διανυσμα b που περιέχει το μέτρο και το 1 για την τελευταια προσθετη στήλη στο μοκ μητρωο
+		
+		x = np.linalg.solve(A,b) # υπολογισμος βαρυκεντρων συντεταγμένων λ .
 
-		radius = np.linalg.norm(points[0] - center) # euklidia apostash
-		#print('rad',radius)
+		bcoords = x[:-1] 
+		center = np.dot(bcoords,points) # μετατροπή βαρυκεντρων συντεταγμένων σε καρτεσιανές
+
+		radius = np.linalg.norm(points[0] - center) # ακτινα 
+		
 		return (center, radius)
 
 	def inCircle(self,triangle,p):
@@ -65,14 +59,13 @@ class Delaunay:
 
 	def addPoint(self,point):
 
-		#print('p:',point)
 		point = np.asarray(point)
 		idx = len(self.coords)
 
 		self.coords.append(point)
 
 		bad_triangles = []
-		for triangle in self.triangles:
+		for triangle in self.triangles: # αν υπαρχουν σημεια μεσα στον κυκλο τοτε είναι "κακό" τρίγωνο
 			if self.inCircle(triangle,point):
 				bad_triangles.append(triangle)
 
@@ -82,7 +75,7 @@ class Delaunay:
 			triangle = bad_triangles[1]
 		edge = 0 # "random" edge
 		while True:
-			triangle_opposite = self.triangles[triangle][edge]
+			triangle_opposite = self.triangles[triangle][edge] # γειτονικο τρίγωνο
 			if triangle_opposite not in bad_triangles:
 				boundary.append((triangle[(edge+1) % 3],triangle[(edge-1) % 3],triangle_opposite))
 
@@ -93,7 +86,7 @@ class Delaunay:
 
 			else:
 				edge = (self.triangles[triangle_opposite].index(triangle)+1) % 3
-				triangle = triangle_opposite
+				triangle = triangle_opposite # επόμενος γείτονας
 
 		for triangle in bad_triangles:
 			del self.triangles[triangle]
@@ -101,11 +94,10 @@ class Delaunay:
 
 		new_triangles=[]
 		for (e0, e1, triangle_opposite) in boundary:
-			#print('edge:',e0, e1, triangle_opposite)
-			triangle = (idx, e0, e1) # dimourgw neo trigwno me to index tou shmeiou p kai tis akrianes akmes
+			triangle = (idx, e0, e1) # νεο τρίγωνο με το σημείο p και της μη κοινές ακμές του τριγωνου
 			self.circles[triangle] = self.circumcenter(triangle)
-			self.triangles[triangle] = [triangle_opposite, None, None] # 8ese san geitona tou trigwnou p ftia3ame to apenanti trigwno
-			# prospa8hse na 8eseis san geitona tou opposite triangle to neo trigwno
+			self.triangles[triangle] = [triangle_opposite, None, None] # θέτω το απέναντι τρίγωνο γειτονα του τριγώνου
+			# προσπαθω να θέσω γειτονα του απέναντι τριγωνου το νεο τρίγωνο
 			if triangle_opposite:
 				for i, neigh in enumerate(self.triangles[triangle_opposite]):
 					if neigh:
@@ -115,7 +107,7 @@ class Delaunay:
 			new_triangles.append(triangle)
 
 
-		# enwse ta nea trigwna meta3u tous
+		# ενωνω τα τριγωνα μεταξυ τους (σχεση γειτνιασης)
 		N = len(new_triangles)
 		for i, triangle in enumerate(new_triangles):
 			self.triangles[triangle][1] = new_triangles[(i+1) % N] # next
