@@ -96,27 +96,28 @@ if __name__=="__main__":
 	vor = Voronoi2D(points)
 	vor.start()
 	vor.plotVoronoi()
-	'''	
+	'''
+	
 
 	# Παραγωγή διαγράμματος Voronoi ενος συνόλου των σημείων ενδιαφέροντος που υπάρχουν στην Νεα Υορκη .
-	
-	#points, city, totalSize = loadGeoDataset1(100)
-	#print('Number of Points:',totalSize)
-	#print(city)
 	'''
+	points, city, totalSize = loadGeoDataset1(100)
+	#print('Number of Points:',totalSize)
+	
+	
 	if len(points)>0:
 		vor = Voronoi2D(points)
 		vor.start()
 		vor.plotVoronoi(city=city)
 	else:
 		print('Εχείς εισάγει παραπάνω σημεια απο ότι περιέχονται στο Dataset.')
-	
 	'''
+	
 	# Παραγωγή διαγράμματος Voronoi των πρωτευουσών των πολειτειών της Αμερικής.
-
 	
 	points, states = loadGeoDataset2()
 	vor = Voronoi2D(points)
 	vor.start()
 	vor.plotVoronoi(city=states)
+	
 	

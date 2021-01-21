@@ -58,7 +58,7 @@ class Voronoi2D:
 
 	def plotVoronoi(self,fill=True,city=None):
 
-		fig, ax = plt.subplots()
+		fig, ax = plt.subplots(num="Voronoi Diagram")
 		ax.margins(0.1)
 		ax.set_aspect('equal')
 		plt.axis([self.bounds[0]-1, self.bounds[1]+1, self.bounds[2]-1, self.bounds[3]+1])
