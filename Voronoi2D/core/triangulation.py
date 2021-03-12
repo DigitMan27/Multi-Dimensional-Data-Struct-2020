@@ -21,7 +21,8 @@ class Delaunay:
 		self.circles = {}
 
 		# counter clock wise τριγωνα
-		T1 = (0,1,3) 
+		# δύο υπερ-τρίγωνα 
+		T1 = (0,1,3)
 		T2 = (2,3,1)
 
 		self.triangles[T1] = [T2,None,None]
@@ -69,15 +70,16 @@ class Delaunay:
 			if self.inCircle(triangle,point):
 				bad_triangles.append(triangle)
 
+
 		boundary = []
-		triangle = bad_triangles[0] # "random triangle"
+		triangle = bad_triangles[0] # "τυχαίο τρίγωνο"
 		if bad_triangles[0]==None:
 			triangle = bad_triangles[1]
-		edge = 0 # "random" edge
+		edge = 0 # "τυχαία" edge
 		while True:
 			triangle_opposite = self.triangles[triangle][edge] # γειτονικο τρίγωνο
 			if triangle_opposite not in bad_triangles:
-				boundary.append((triangle[(edge+1) % 3],triangle[(edge-1) % 3],triangle_opposite))
+				boundary.append((triangle[(edge+1) % 3],triangle[(edge-1) % 3],triangle_opposite)) # ακμη και το τριγωνο στο οποιο "συνορευει- είναι κοινή"
 
 				edge = (edge+1) % 3
 
@@ -85,6 +87,7 @@ class Delaunay:
 					break
 
 			else:
+				# Μετακινηση στην επόμενη CCW ακμή στο απέναντι τρίγωνο 
 				edge = (self.triangles[triangle_opposite].index(triangle)+1) % 3
 				triangle = triangle_opposite # επόμενος γείτονας
 
@@ -94,7 +97,7 @@ class Delaunay:
 
 		new_triangles=[]
 		for (e0, e1, triangle_opposite) in boundary:
-			triangle = (idx, e0, e1) # νεο τρίγωνο με το σημείο p και της μη κοινές ακμές του τριγωνου
+			triangle = (idx, e0, e1) # νεο τρίγωνο με το σημείο p και τις κορυφες της ακμής (e0,e1) που συνορεύουν με το triangle_opposite
 			self.circles[triangle] = self.circumcenter(triangle)
 			self.triangles[triangle] = [triangle_opposite, None, None] # θέτω το απέναντι τρίγωνο γειτονα του τριγώνου
 			# προσπαθω να θέσω γειτονα του απέναντι τριγωνου το νεο τρίγωνο
@@ -126,7 +129,6 @@ class Delaunay:
 		ax.margins(0.1)
 		ax.set_aspect('equal')
 		plt.axis([bounds[0]-1, bounds[1]+1, bounds[2]-1, bounds[3]+1])
-		#plt.axis([-1,radius+1, -1, radius+1])
 		ax.triplot(matplotlib.tri.Triangulation(x,y,triangles),'bo--')
 		plt.show()
 

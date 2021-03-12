@@ -41,11 +41,11 @@ def loadGeoDataset1(size):
 	file = "data/dataset1/Points Of Interest/geo_export_d771d7a5-ef72-43f8-8b2c-67a3549235c5.shp"
 	gmap = "data/USA_States/USA_States.shp"
 	points = gpd.read_file(file)
-	points = points.to_crs({"init": "EPSG:4326"})
+	points = points.to_crs({"init": "EPSG:4326"}) # μετατρέπω τις συντεταγμένες του αρχείου σε WGS 84 
 	city = gpd.read_file(gmap)
-	city = city.to_crs(points.crs)
-	city = city[city["STATE_NAME"] == "New York"]
-	points = gpd.sjoin(points,city,how="left")
+	city = city.to_crs(points.crs) # μετατρέπω τις συντεταγμένες του αρχείου στο ιδιο format με αυτο της μεταβλητης points
+	city = city[city["STATE_NAME"] == "New York"] # παιρνω την γραμμή του dataframe οπου το STATE_NAME ειναι ισο με New York
+	points = gpd.sjoin(points,city,how="left") # ενωνω τους πινακες και κραταω τα σημεία που αφορουν την τιμή New York
 	points = points.dropna(subset=["index_right"])
 	numOfPoints = points.shape[0]
 
@@ -78,13 +78,13 @@ def loadGeoDataset2():
 	file = "data/dataset2/USA_Capitals/USA_Capitals.shp"
 	gmap = "data/USA_States/USA_States.shp"
 	points = gpd.read_file(file)
-	points = points.to_crs({"init": "EPSG:4326"})
+	points = points.to_crs({"init": "EPSG:4326"}) # μετατρέπω τις συντεταγμένες του αρχείου σε WGS 84 
 	x = points.geometry.x
 	y = points.geometry.y
 	capital_points_nparr = np.array([[i,j] for i,j in zip(x,y)])
 
 	states = gpd.read_file(gmap,header=None)
-	states = states.to_crs(points.crs)
+	states = states.to_crs(points.crs) # μετατρέπω τις συντεταγμένες του αρχείου στο ιδιο format με αυτο της μεταβλητης points
 	
 	return capital_points_nparr, states.geometry
 
@@ -101,7 +101,7 @@ if __name__=="__main__":
 
 	# Παραγωγή διαγράμματος Voronoi ενος συνόλου των σημείων ενδιαφέροντος που υπάρχουν στην Νεα Υορκη .
 	'''
-	points, city, totalSize = loadGeoDataset1(100)
+	points, city, totalSize = loadGeoDataset1(100) # συναρτηση που διαβάζει και επιστρέφει καταλλήλως τα δεδομένα του 1ου dataset
 	#print('Number of Points:',totalSize)
 	
 	
@@ -115,7 +115,7 @@ if __name__=="__main__":
 	
 	# Παραγωγή διαγράμματος Voronoi των πρωτευουσών των πολιτειών της Αμερικής.
 	
-	points, states = loadGeoDataset2()
+	points, states = loadGeoDataset2() # συναρτηση που διαβάζει και επιστρέφει καταλλήλως τα δεδομένα του 2ου dataset
 	vor = Voronoi2D(points)
 	vor.start()
 	vor.plotVoronoi(city=states)

@@ -12,7 +12,7 @@ class Voronoi2D:
 		x, y = zip(*points)
 		self.bounds = [min(x),max(x),min(y),max(y)]
 		center = np.mean(points,axis=0)
-		self.d = Delaunay(center)
+		self.d = Delaunay(center) # Αρχικοποιώ την τριγωνοποίηση (δημιουργία super triangles)
 		self.triangles = []
 		self.points = points
 		self.voronoiPoints = []
@@ -21,10 +21,11 @@ class Voronoi2D:
 		self.coords = []
 
 	def start(self):
+		# τριγωνοποιηση για κάθε νέο σημείο που εισάγεται (incremental εκτέλεση του αλγορίθμου τριγωνοποιησης)
 		for point in self.points:
 			self.d.addPoint(point)
 
-		self.triangles, self.centers, self.coords = self.d.getInfo() # παιρνω τα τριγωνα, του κυκλους και στα σημεία απο την τριγωνοποίηση
+		self.triangles, self.centers, self.coords = self.d.getInfo() # παιρνω τα τριγωνα, τους κυκλους και στα σημεία απο την τριγωνοποίηση
 		triangleUseVertex = {i:[] for i in range(len(self.coords))}
 		triangleIndex = {}
 		for tidx, (a,b,c) in enumerate(sorted(self.triangles)):
@@ -48,15 +49,22 @@ class Voronoi2D:
 			vertex = triangleUseVertex[point_idx][0][0]
 			r = []
 			for _ in range(len(triangleUseVertex[point_idx])):
-				t = [t for t in triangleUseVertex[point_idx] if t[0]==vertex][0] # Τρίγωνο που ξεκινάει με την κορυφή v .
-				r.append(triangleIndex[t]) # προσθέτω το id του τριγωνου που ξεκινά με την κορυφη v
-				vertex = t[1]
+				t = [t for t in triangleUseVertex[point_idx] if t[0]==vertex][0] # Τρίγωνο που ξεκινάει με την κορυφή vertex και περιέχει και το σημειο αρα έχουν κοινη ακμή .
+				r.append(triangleIndex[t]) # προσθέτω το id του τριγωνου που ξεκινά με την κορυφη vertex, γειτονικα τριγωνα 
+				# η λιστα r θα περιέχει τα indexes των τριγωνων που περιέχουν το σημείο αλλα και που έχουν κοινή ακμή με αυτο .
+				vertex = t[1] # επομενη κορυφη 
 			self.voronoiRegions[point_idx-4] = r
 
 		return self.voronoiPoints, self.voronoiRegions
 
 
 	def plotVoronoi(self,fill=True,city=None):
+		'''
+		fill : Αν True τοτε τα πολύγωνα θα είναι με χρώμα (default), αλλιως θα είναι μόνο οι γραμμές των πολυγώνων .
+		city : None τιμη αν θες να έχει μόνο τα σημεία στο plot(default), αλλιως μεταβλητη η οποία θα έχει σχέση με τα δεδομένα που έχουν εισαχθέι 
+		(χρησιμοποιειται μονο στα γεωγραφικα δεδομενα)
+
+		'''
 
 		fig, ax = plt.subplots(num="Voronoi Diagram")
 		ax.margins(0.1)
